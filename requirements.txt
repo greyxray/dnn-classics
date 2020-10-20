@@ -1,0 +1,7 @@
+torch
+torchvision
+skorch
+pdb # ipdb
+pytest
+pandas
+attrs
