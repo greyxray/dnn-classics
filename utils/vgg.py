@@ -37,14 +37,19 @@ def main():
 
     model.set_transforms()
 
-    model.load_data(dataset_name='CIFAR10')
+    model.load_data(dataset_name='CIFAR10', scale_down=0.01,
+        batch_size=8)
 
     # model.plot_train_images(5)
 
-    model.setup_training()
+    # Learning rate search
+    # model.setup_training(pretrain=False, lr=1e-7)
+    # lr, loss = model.find_lr()
+    # print(lr, loss)
 
-    lr, loss = model.find_lr()
-    print(lr, loss)
+    model.setup_training(lr=5e-4)  # necessary for lr search
+
+    model.do_train(epochs=1)
 
     print("done")
 

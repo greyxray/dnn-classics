@@ -22,7 +22,7 @@ import copy
 import random
 import time
 
-from models.utils.inspect_model import count_parameters, plot_lr_finder
+from models.utils.inspect_model import count_parameters, plot_lr_finder, train_eval, epoch_time
 from models.utils.inspect_image import plot_train_images
 from models.utils.lr_finder import LRFinder, ExponentialLR, IteratorWrapper
 
@@ -80,6 +80,14 @@ class VGG(torch.nn.Module):
             nn.Dropout(0.5),
             nn.Linear(4096, output_dim),
         )
+
+    def forward(self, x):
+        x = self.features(x)  # CNN
+        x = self.avgpool(x)  # standartize the size
+        h = x.view(x.shape[0], -1)  # straighten
+        x = self.classifier(h)  # classify
+
+        return x, h
 
     def set_features(self, *argv, **kwargs):
         if len(argv) > 0:
@@ -149,7 +157,7 @@ class VGG(torch.nn.Module):
         ])
 
     def load_data(self, dataset_name='CIFAR10', valid_ratio=0.9,
-                  batch_size=128):
+                  batch_size=128, scale_down=None):
 
         self.train_data = getattr(datasets, dataset_name)(
             '.data',
@@ -166,8 +174,20 @@ class VGG(torch.nn.Module):
         n_train_examples = int(len(self.train_data) * valid_ratio)
         n_valid_examples = len(self.train_data) - n_train_examples
 
-        self.train_data, self.valid_data = data.random_split(
-            self.train_data, [n_train_examples, n_valid_examples])
+        if scale_down is not None:
+            self.test_data, _ = data.random_split(
+                self.test_data, [int(len(self.test_data) * scale_down),
+                                 int(len(self.test_data) * (1 - scale_down))])
+
+            self.train_data, self.valid_data, _ = data.random_split(
+                self.train_data,
+                [int(n_train_examples * scale_down),
+                 int(n_valid_examples * scale_down),
+                 int(len(self.train_data) * (1 - scale_down))])
+
+        else:
+            self.train_data, self.valid_data = data.random_split(
+                self.train_data, [n_train_examples, n_valid_examples])
 
         # Use the test_transforms on valid set as well
         self.valid_data = copy.deepcopy(self.valid_data)
@@ -186,9 +206,17 @@ class VGG(torch.nn.Module):
         self.test_dataloader = data.DataLoader(
             self.test_data, batch_size=batch_size)
 
-    def setup_training(self, start_lr=1e-7, optimizer='Adam'):
+    def setup_training(self, lr=1e-7, optimizer='Adam', pretrain=None):
+        if pretrain is None:
+            pretrain = self.pretrain
 
-        self.optimizer = getattr(optim, optimizer)(self.parameters(), lr=start_lr)
+        params = [
+            {'params': self.features.parameters(),
+             'lr': lr / 10 if pretrain else lr},
+            {'params': self.classifier.parameters()}
+        ]
+
+        self.optimizer = getattr(optim, optimizer)(params, lr=lr)
 
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -212,7 +240,7 @@ class VGG(torch.nn.Module):
     def init_weights(self, pretrain=True):
         if pretrain:
             attribute = self.config_key + self.batch_norm * ('_bn')
-            pretrained_model = getattr(tmodels, attribute)(pretrained=True)  #models.vgg11_bn(pretrained=True)
+            pretrained_model = getattr(tmodels, attribute)(pretrained=True)
 
             # replace last layer if outputs don't match in dim
             if pretrained_model.classifier[-1].out_features != self.output_dim:
@@ -220,6 +248,8 @@ class VGG(torch.nn.Module):
                     pretrained_model.classifier[-1].in_features,
                     self.output_dim)
 
+            # from pytorch docs
+            self.pretrain = True
             self.norm_size = 224
             self.norm_means = [0.485, 0.456, 0.406]
             self.norm_stds = [0.229, 0.224, 0.225]
@@ -229,10 +259,28 @@ class VGG(torch.nn.Module):
         else:
             pass
 
-    def forward(self, x):
-        x = self.features(x)  # CNN
-        x = self.avgpool(x)  # standartize the size
-        h = x.view(x.shape[0], -1)  # straighten
-        x = self.classifier(h)  # classify
+    def do_train(self, epochs=5):
+        best_valid_loss = float('inf')
 
-        return x, h
+        for epoch in range(epochs):
+
+            start_time = time.monotonic()
+
+            train_loss, train_acc = train_eval(
+                self, self.train_dataloader, self.optimizer,
+                self.loss, self.device, mode='train')
+            valid_loss, valid_acc = train_eval(
+                self, self.valid_dataloader, None,
+                self.loss, self.device, mode='eval')
+
+            if valid_loss < best_valid_loss:
+                best_valid_loss = valid_loss
+                torch.save(self.state_dict(), 'tut4-model.pt')
+
+            end_time = time.monotonic()
+
+            epoch_mins, epoch_secs = epoch_time(start_time, end_time)
+
+            print(f'Epoch: {epoch+1:02} | Epoch Time: {epoch_mins}m {epoch_secs}s')
+            print(f'\tTrain Loss: {train_loss:.3f} | Train Acc: {train_acc*100:.2f}%')
+            print(f'\t Val. Loss: {valid_loss:.3f} |  Val. Acc: {valid_acc*100:.2f}%')
