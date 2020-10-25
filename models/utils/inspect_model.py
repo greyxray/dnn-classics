@@ -5,6 +5,9 @@ import matplotlib.pyplot as plt
 import copy
 import time
 
+import torch
+import torch.nn.functional as F
+
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -88,3 +91,33 @@ def train_eval(model, iterator, optimizer, criterion, device, mode='eval'):
         print(epoch_loss)
 
     return epoch_loss / len(iterator), epoch_acc / len(iterator)
+
+
+def get_image_predictions(model, dataloader, device):
+    '''
+    Get predictions on the images
+    '''
+    model.eval()
+
+    images, labels, probs, max_preds = [], [], [], []
+
+    with torch.no_grad():
+        for (x, y) in dataloader:
+
+            x = x.to(device)
+
+            y_pred, h = model(x)
+
+            y_prob = F.softmax(y_pred, dim=-1)
+            max_pred = y_prob.argmax(1, keepdim=True)
+
+            images.append(x.cpu())
+            labels.append(y.cpu())
+            probs.append(y_prob.cpu())
+            max_preds.append(max_pred.cpu())
+
+    images = torch.cat(images, dim=0)
+    labels = torch.cat(labels, dim=0)
+    probs = torch.cat(probs, dim=0)
+
+    return images, labels, probs, max_preds

@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-import copy
-import time
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import ConfusionMatrixDisplay
 
 
 def normalize_image(image):
@@ -45,3 +45,15 @@ def plot_train_images(data, classes, n_images=25):
     # classes = test_data.classes  # not sure why the train data has no classes
 
     plot_images(images, labels, classes)
+
+
+def plot_confusion_matrix(labels, pred_labels, classes):
+
+    fig = plt.figure(figsize=(10, 10))
+    ax = fig.add_subplot(1, 1, 1)
+    cm = confusion_matrix(labels, pred_labels)
+    cm = ConfusionMatrixDisplay(cm, display_labels=classes)
+    cm.plot(values_format='d', cmap='Blues', ax=ax)
+    plt.xticks(rotation=20)
+
+    plt.show()

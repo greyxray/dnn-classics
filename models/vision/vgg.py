@@ -23,11 +23,12 @@ import random
 import time
 
 from models.utils.inspect_model import count_parameters, plot_lr_finder, train_eval, epoch_time
-from models.utils.inspect_image import plot_train_images
-from models.utils.lr_finder import LRFinder, ExponentialLR, IteratorWrapper
+from models.utils.lr_finder import LRFinder
+from models.vision.visionbase import VisionBase
+from models.modelbase import ModelBase
 
 
-class VGG(torch.nn.Module):
+class VGG(torch.nn.Module, VisionBase, ModelBase):
 
     vgg_config = {
         'vgg11': [64, 'M',
@@ -171,6 +172,7 @@ class VGG(torch.nn.Module):
             download=True,
             transform=self.test_transforms)
 
+        self.classes = self.test_data.classes
         n_train_examples = int(len(self.train_data) * valid_ratio)
         n_valid_examples = len(self.train_data) - n_train_examples
 
@@ -225,9 +227,6 @@ class VGG(torch.nn.Module):
         self = self.to(self.device)
         self.loss = self.loss.to(self.device)
 
-    def plot_train_images(self, n_images=25):
-        plot_train_images(data=self.train_data, classes=self.test_data.classes)
-
     def find_lr(self, end_lr=10, num_iter=100):
 
         lr_finder = LRFinder(self, self.optimizer, self.loss, self.device)
@@ -269,6 +268,7 @@ class VGG(torch.nn.Module):
             train_loss, train_acc = train_eval(
                 self, self.train_dataloader, self.optimizer,
                 self.loss, self.device, mode='train')
+
             valid_loss, valid_acc = train_eval(
                 self, self.valid_dataloader, None,
                 self.loss, self.device, mode='eval')
