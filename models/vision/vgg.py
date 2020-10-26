@@ -25,10 +25,9 @@ import time
 from models.utils.inspect_model import count_parameters, plot_lr_finder, train_eval, epoch_time
 from models.utils.lr_finder import LRFinder
 from models.vision.visionbase import VisionBase
-from models.modelbase import ModelBase
 
 
-class VGG(torch.nn.Module, VisionBase, ModelBase):
+class VGG(torch.nn.Module, VisionBase):
 
     vgg_config = {
         'vgg11': [64, 'M',

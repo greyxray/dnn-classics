@@ -8,9 +8,6 @@ from models.utils.random_state import RandomState
 from models.vision.vgg import VGG
 from models.utils.inspect_model import count_parameters
 
-import random
-import numpy as np
-import torch
 import copy
 
 
@@ -59,3 +56,58 @@ def test_vgg_count_parameters():
 
     model.freeze_classifier()
     assert count_parameters(model) == 40970
+
+
+@pytest.mark.dependency(depends=['test_init_vgg_weight'])
+def test_load_data():
+    pytest.model.set_transforms()
+
+    pytest.model.prep_data(
+        dataset_name='CIFAR10',
+        scale_down=0.005,
+        batch_size=8)
+
+
+@pytest.mark.dependency(depends=['test_load_data'])
+def test_setup_training():
+    pytest.model.setup_training(lr=5e-4)
+
+# # Typically to expensive
+# @pytest.mark.dependency(depends=['test_setup_training'])
+# def test_training():
+#     model.do_train(epochs=1)
+
+
+@pytest.mark.dependency(depends=['test_setup_training'])
+def test_predictions():
+    pytest.model.get_test_predictions()
+
+
+@pytest.mark.dependency(depends=['test_predictions'])
+def test_plot_confusion_matrix():
+    pytest.model.plot_test_confusion_matrix(show=False)
+
+
+@pytest.mark.dependency(depends=['test_predictions'])
+def test_plot_most_incorrect():
+    pytest.model.plot_test_most_incorrect(n_images=4, show=False)
+
+
+@pytest.mark.dependency(depends=['test_predictions'])
+def test_get_train_representation():
+    outputs, h, labels = pytest.model.get_train_representation()
+    assert len(outputs) == len(labels)
+    assert len(h) == 0
+
+    pytest.model.plot_pca_train_representation(intermediate=False, show=False)
+    pytest.model.plot_tsne_train_representation(n_images=10, intermediate=False, show=False)
+
+
+@pytest.mark.dependency(depends=['test_predictions'])
+def test_plot_n_filtered_images():
+    pytest.model.plot_n_filtered_images(5, 7, show=False)
+
+
+@pytest.mark.dependency(depends=['test_predictions'])
+def test_plot_n_filters():
+    pytest.model.plot_n_filters(7, show=False)

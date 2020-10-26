@@ -45,6 +45,8 @@ def test_vgg_count_parameters_nopretrain(random_state, vgg_nopretrain):
 def vgg():
     model = VGG(output_dim=10, config_key='vgg11')
 
+    model.init_weights(pretrain=True)
+
     return model
 
 
