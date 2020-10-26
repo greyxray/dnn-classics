@@ -9,3 +9,4 @@ matplotlib
 numpy
 pytest-dependency
 scikit-learn
+kaggle
