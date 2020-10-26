@@ -157,25 +157,21 @@ class VGG(torch.nn.Module, VisionBase, ModelBase):
             transforms.Normalize(mean=means, std=stds)
         ])
 
-    def load_data(self, dataset_name='CIFAR10', valid_ratio=0.9,
-                  batch_size=128, scale_down=None):
+    def prepare_dataloaders(self, batch_size):
+        self.train_dataloader = data.DataLoader(
+            self.train_data, shuffle=True, batch_size=batch_size)
 
-        self.train_data = getattr(datasets, dataset_name)(
-            '.data',
-            train=True,
-            download=True,
-            transform=self.train_transforms)
+        self.valid_dataloader = data.DataLoader(
+            self.valid_data, batch_size=batch_size)
 
-        self.test_data = getattr(datasets, dataset_name)(
-            '.data',
-            train=False,
-            download=True,
-            transform=self.test_transforms)
+        self.test_dataloader = data.DataLoader(
+            self.test_data, batch_size=batch_size)
 
-        self.classes = self.test_data.classes
+    def split_data(self, valid_ratio, scale_down):
         n_train_examples = int(len(self.train_data) * valid_ratio)
         n_valid_examples = len(self.train_data) - n_train_examples
 
+        # scale down the test, valid and train samples
         if scale_down is not None:
             self.test_data, _ = data.random_split(
                 self.test_data, [int(len(self.test_data) * scale_down),
@@ -195,18 +191,36 @@ class VGG(torch.nn.Module, VisionBase, ModelBase):
         self.valid_data = copy.deepcopy(self.valid_data)
         self.valid_data.dataset.transform = self.test_transforms
 
-        print(f'Number of training examples: {len(self.train_data)}')
-        print(f'Number of validation examples: {len(self.valid_data)}')
-        print(f'Number of testing examples: {len(self.test_data)}')
+        print(f'Number of training examples: {len(self.train_data)}\n' \
+              f'Number of validation examples: {len(self.valid_data)}\n' \
+              f'Number of testing examples: {len(self.test_data)}')
 
-        self.train_dataloader = data.DataLoader(
-            self.train_data, shuffle=True, batch_size=batch_size)
+    def load_data(self, dataset_name='CIFAR10'):
 
-        self.valid_dataloader = data.DataLoader(
-            self.valid_data, batch_size=batch_size)
+        self.train_data = getattr(datasets, dataset_name)(
+            '.data',
+            train=True,
+            download=True,
+            transform=self.train_transforms)
 
-        self.test_dataloader = data.DataLoader(
-            self.test_data, batch_size=batch_size)
+        self.test_data = getattr(datasets, dataset_name)(
+            '.data',
+            train=False,
+            download=True,
+            transform=self.test_transforms)
+
+        self.classes = self.test_data.classes
+
+    def prep_data(self, dataset_name='CIFAR10', valid_ratio=0.9,
+                  batch_size=128, scale_down=None):
+
+        self.batch_size = batch_size
+
+        self.load_data(dataset_name)
+
+        self.split_data(valid_ratio, scale_down)
+
+        self.prepare_dataloaders(self.batch_size)
 
     def setup_training(self, lr=1e-7, optimizer='Adam', pretrain=None):
         if pretrain is None:

@@ -37,7 +37,9 @@ def main():
 
     model.set_transforms()
 
-    model.load_data(dataset_name='CIFAR10', scale_down=0.01,
+    model.prep_data(
+        dataset_name='CIFAR10',
+        scale_down=0.01,
         batch_size=8)
 
     # model.plot_train_images(5)
