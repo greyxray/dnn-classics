@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
-from torch.optim.lr_scheduler import _LRScheduler
 import torch.utils.data as data
 
 import torchvision.transforms as transforms
@@ -10,16 +8,7 @@ import torchvision.datasets as datasets
 
 import torchvision.models as tmodels
 
-from sklearn import decomposition
-from sklearn import manifold
-from sklearn.metrics import confusion_matrix
-from sklearn.metrics import ConfusionMatrixDisplay
-
-import matplotlib.pyplot as plt
-import numpy as np
-
 import copy
-import random
 import time
 
 from models.utils.inspect_model import count_parameters, plot_lr_finder, train_eval, epoch_time
@@ -222,12 +211,17 @@ class VGG(torch.nn.Module, VisionBase):
         self.prepare_dataloaders(self.batch_size)
 
     def setup_training(self, lr=1e-7, optimizer='Adam', pretrain=None):
+        '''
+        Set ooptimizer, device and loss
+        '''
         if pretrain is None:
             pretrain = self.pretrain
 
         params = [
+            # parameters for the features extraction
             {'params': self.features.parameters(),
              'lr': lr / 10 if pretrain else lr},
+            # parameters for classification
             {'params': self.classifier.parameters()}
         ]
 

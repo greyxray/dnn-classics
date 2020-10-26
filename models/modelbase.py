@@ -1,5 +1,4 @@
 import torch
-# from models.utils.inspect_image import plot_confusion_matrix
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import ConfusionMatrixDisplay
 
