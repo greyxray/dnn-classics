@@ -51,9 +51,14 @@ def vgg():
 def test_vgg_count_parameters(random_state, vgg):
     assert count_parameters(vgg) == 128807306
 
-    print(dir(vgg))
     vgg.freeze_features()
     assert count_parameters(vgg) == 119586826
 
     vgg.freeze_classifier()
     assert count_parameters(vgg) == 40970
+
+    vgg.freeze_features(unfreeze=True)
+    assert count_parameters(vgg) == 9261450
+
+    vgg.freeze_classifier(unfreeze=True)
+    assert count_parameters(vgg) == 128807306

@@ -129,13 +129,13 @@ class VGG(torch.nn.Module, VisionBase, ModelBase):
 
         return nn.Sequential(*layers)
 
-    def freeze_features(self):
+    def freeze_features(self, unfreeze=False):
         for parameter in self.features.parameters():
-            parameter.requires_grad = False
+            parameter.requires_grad = unfreeze
 
-    def freeze_classifier(self):
+    def freeze_classifier(self, unfreeze=False):
         for parameter in self.classifier[:-1].parameters():
-            parameter.requires_grad = False
+            parameter.requires_grad = unfreeze
 
     def set_transforms(self, size=None, means=None, stds=None):
         size = self.norm_size if size is None else size
