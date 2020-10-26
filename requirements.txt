@@ -5,4 +5,7 @@ ipdb
 pytest
 pandas
 attrs
+matplotlib
+numpy
 pytest-dependency
+scikit-learn
