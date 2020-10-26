@@ -1,8 +1,11 @@
 torch
 torchvision
 skorch
-pdb # ipdb
+ipdb
 pytest
 pandas
 attrs
+matplotlib
+numpy
 pytest-dependency
+scikit-learn
