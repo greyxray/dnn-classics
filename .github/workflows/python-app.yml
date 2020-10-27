@@ -25,6 +25,16 @@ jobs:
         python -m pip install --upgrade pip
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    
+    - name: Run multiple Kaggle commands
+      run: |
+        kaggle --version
+        kaggle competitions list
+      env:
+        # Do not leak your credentials.
+        KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+        KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
